@@ -4,12 +4,11 @@ let players = [];
 let distanceToCenter = 50;
 let nextId = 1;
 
-function getInitialPosition() {
+function getInitialPosition(isRespawn = false) {
     const x = Math.floor((Math.random() * distanceToCenter) - distanceToCenter / 2);
     const y = Math.floor((Math.random() * distanceToCenter) - distanceToCenter / 2);
-    distanceToCenter += distanceToCenter * .05;
-    if (distanceToCenter > 1000)
-        distanceToCenter = 1000;
+    if (!isRespawn) distanceToCenter += distanceToCenter * .05;
+    if (distanceToCenter > 1000) distanceToCenter = 1000;
     return { x, y };
 }
 
@@ -45,21 +44,22 @@ setInterval(() => {
     percentages[1] = Math.round(100 * sums[1] / total);
     percentages[2] = Math.round(100 * sums[2] / total);
     percentages[3] = Math.round(100 * sums[3] / total);
-    console.log(`percentages: ` + percentages);
+
 }, 5000);
 
 wss.on('connection', (ws) => {
-
 
     var commandAction = null;
     var commandMove = null;
     var player = getInitialPosition();
     player.id = nextId++;
+    player.hp = 100;
     player.cooldown1 = 0;
     player.cooldown2 = 0;
     player.cooldown3 = 0;
     player.cooldown4 = 0;
     players.push(player);
+    player.respawning = 0;
     var speedModifier = 1;
 
     console.log(`player ${player.id} connected.`);
@@ -221,6 +221,22 @@ wss.on('connection', (ws) => {
                                 }, 10);
                             } break;
 
+                            case "water": {
+                                let interval;
+                                let i = 4;
+                                player.cooldown2 = 90;
+                                player.maxCooldown2 = 90;
+                                speedModifier = 2;
+                                interval = setInterval(() => {
+                                    setPos(player.x, player.y, 'w');
+                                    i++;
+                                    if (i > 200) {
+                                        clearInterval(interval);
+                                        speedModifier = 1;
+                                    }
+                                }, 10);
+                            } break;
+
                             case "earth": {
                                 let interval;
                                 let i = 4;
@@ -240,14 +256,17 @@ wss.on('connection', (ws) => {
 
                             case "air": {
                                 let interval;
-                                let i = 4;
-                                player.cooldown2 = 110;
-                                player.maxCooldown2 = 110;
+                                let i = 0;
+                                player.cooldown2 = 10;
+                                player.maxCooldown2 = 10;
                                 interval = setInterval(() => {
-                                    setPos(player.x - 6 + Math.floor(Math.random() * 12), player.y - 6 + Math.floor(Math.random() * 12), 'a');
                                     i++;
-                                    if (i > 50) clearInterval(interval);
-                                }, 50);
+                                    setPos(
+                                        Math.round(player.x + 4.75 * Math.cos(Math.PI * 2 * i / 36)),
+                                        Math.round(player.y + 4.75 * Math.sin(Math.PI * 2 * i / 36)),
+                                        'a');
+                                    if (i > 36) clearInterval(interval);
+                                }, 10);
                             } break;
 
                         }
@@ -260,6 +279,39 @@ wss.on('connection', (ws) => {
                     commandAction = () => {
                         if (player.cooldown3 > 0) return;
                         switch (player.element) {
+
+                            case "water": {
+                                let interval;
+                                let i = 0;
+                                player.cooldown3 = 300;
+                                player.maxCooldown3 = 300;
+                                speedModifier = 0;
+                                interval = setInterval(() => {
+                                    setPos(player.x + i * 2, player.y + 0 + 0, 'w');
+                                    setPos(player.x - i * 2, player.y + 0 + 0, 'w');
+                                    setPos(player.x + 0 + 0, player.y + i * 2, 'w');
+                                    setPos(player.x + 0 + 0, player.y - i * 2, 'w');
+
+                                    setPos(player.x + i * 2, player.y + 1, 'w');
+                                    setPos(player.x + i * 2, player.y - 1, 'w');
+
+                                    setPos(player.x - i * 2, player.y + 1, 'w');
+                                    setPos(player.x - i * 2, player.y - 1, 'w');
+
+                                    setPos(player.x + 1, player.y + i * 2, 'w');
+                                    setPos(player.x - 1, player.y + i * 2, 'w');
+
+                                    setPos(player.x + 1, player.y - i * 2, 'w');
+                                    setPos(player.x - 1, player.y - i * 2, 'w');
+
+                                    i++;
+                                    if (i > 15) {
+                                        speedModifier = 1;
+                                        clearInterval(interval);
+                                    }
+                                }, 10);
+                            } break;
+
 
                             case "fire": {
                                 let interval;
@@ -313,18 +365,46 @@ wss.on('connection', (ws) => {
 
     var interval;
     interval = setInterval(() => {
-        if (player.cooldown1 > 0) player.cooldown1--;
-        if (player.cooldown2 > 0) player.cooldown2--;
-        if (player.cooldown3 > 0) player.cooldown3--;
-        if (player.cooldown4 > 0) player.cooldown4--;
-        if (commandAction) {
-            commandAction({ ...player });
-            commandAction = null;
+        const posS = map[player.x + "," + player.y];
+        switch (player.element) {
+            case "water": { if (posS === "a") player.hp--; } break;
+            case "fire": { if (posS === "w") player.hp--; } break;
+            case "earth": { if (posS === "f") player.hp--; } break;
+            case "air": { if (posS === "e") player.hp--; } break;
         }
-        if (commandMove) {
-            commandMove();
-            commandMove = null;
+
+        if (player.hp <= 0) {
+            player.hp = 0;
+            player.respawning++;
+            if (player.respawning >= 100) {
+                player.hp = 100;
+                player.respawning = 0;
+                const { x, y } = getInitialPosition(true);
+                player.x = x;
+                player.y = y;
+                player.cooldown1 = 0;
+                player.cooldown2 = 0;
+                player.cooldown3 = 0;
+                player.cooldown4 = 0;
+                speedModifier = 1;
+            }
+        } else {
+
+            if (player.cooldown1 > 0) player.cooldown1--;
+            if (player.cooldown2 > 0) player.cooldown2--;
+            if (player.cooldown3 > 0) player.cooldown3--;
+            if (player.cooldown4 > 0) player.cooldown4--;
+            if (commandAction) {
+                commandAction({ ...player });
+                commandAction = null;
+            }
+            if (commandMove) {
+                commandMove();
+                commandMove = null;
+            }
+
         }
+
         sendUpdate();
     }, 1000 / 15);
 
