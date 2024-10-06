@@ -1,4 +1,4 @@
-
+const initialTime = Date.now();
 const map = {};
 let players = [];
 let distanceToCenter = 50;
@@ -17,10 +17,12 @@ function setPos(x, y, s) {
     map[x + "," + y] = s;
 }
 
+require('dotenv').config()
 const express = require('express');
 const http = require('http');
 const WebSocket = require('ws');
 
+const PORT = process.env.PORT;
 const app = express();
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
@@ -39,10 +41,10 @@ setInterval(() => {
     });
     const total = sums[0] + sums[1] + sums[2] + sums[3];
     if (total === 0) return;
-    percentages[0] = Math.floor(100 * sums[0] / total);
-    percentages[1] = Math.floor(100 * sums[1] / total);
-    percentages[2] = Math.floor(100 * sums[2] / total);
-    percentages[3] = Math.floor(100 * sums[3] / total);
+    percentages[0] = Math.round(100 * sums[0] / total);
+    percentages[1] = Math.round(100 * sums[1] / total);
+    percentages[2] = Math.round(100 * sums[2] / total);
+    percentages[3] = Math.round(100 * sums[3] / total);
     console.log(`percentages: ` + percentages);
 }, 5000);
 
@@ -72,7 +74,7 @@ wss.on('connection', (ws) => {
                 world.push(map[posId]);
             }
         }
-        ws.send(JSON.stringify({ player, players, world, percentages }));
+        ws.send(JSON.stringify({ player, players, world, percentages, time: (new Date(Date.now() - initialTime)) }));
     }
 
     ws.on('message', (unparsedMessage) => {
@@ -323,6 +325,6 @@ wss.on('connection', (ws) => {
     });
 });
 
-server.listen(433, () => {
+server.listen(PORT, () => {
     console.log(`Server started on port ${server.address().port} :)`);
 });
