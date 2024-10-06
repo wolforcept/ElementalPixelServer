@@ -74,7 +74,7 @@ wss.on('connection', (ws) => {
                 world.push(map[posId]);
             }
         }
-        ws.send(JSON.stringify({ player, players, world, percentages, time: (new Date(Date.now() - initialTime)) }));
+        ws.send(JSON.stringify({ player, players, world, percentages, time: (Date.now() - initialTime) }));
     }
 
     ws.on('message', (unparsedMessage) => {
@@ -106,6 +106,7 @@ wss.on('connection', (ws) => {
                                 let interval;
                                 let i = 4;
                                 player.cooldown1 = 12;
+                                player.maxCooldown1 = 12;
                                 interval = setInterval(() => {
                                     let dx = 0, dy = 0;
                                     if (message.dir === "up") dy = -1;
@@ -122,6 +123,7 @@ wss.on('connection', (ws) => {
                                 let interval;
                                 let i = 0;
                                 player.cooldown1 = 10;
+                                player.maxCooldown1 = 10;
                                 interval = setInterval(() => {
                                     let dx = 0, dy = 0;
                                     if (message.dir === "up") dx = -1;
@@ -139,6 +141,7 @@ wss.on('connection', (ws) => {
                                 let interval;
                                 let i = 4;
                                 player.cooldown1 = 12;
+                                player.maxCooldown1 = 12;
                                 interval = setInterval(() => {
                                     let dx = 0, dy = 0;
                                     if (message.dir === "up") dy = -1;
@@ -158,6 +161,7 @@ wss.on('connection', (ws) => {
                                 let interval;
                                 let i = 1;
                                 player.cooldown1 = 12;
+                                player.maxCooldown1 = 12;
                                 interval = setInterval(() => {
                                     let dx = 0, dy = 0;
                                     if (message.dir === "up") dy = -1;
@@ -205,6 +209,7 @@ wss.on('connection', (ws) => {
                                 let interval;
                                 let i = 4;
                                 player.cooldown2 = 90;
+                                player.maxCooldown2 = 90;
                                 speedModifier = 2;
                                 interval = setInterval(() => {
                                     setPos(player.x, player.y, 'f');
@@ -219,7 +224,8 @@ wss.on('connection', (ws) => {
                             case "earth": {
                                 let interval;
                                 let i = 4;
-                                player.cooldown2 = 160;
+                                player.cooldown2 = 130;
+                                player.maxCooldown2 = 130;
                                 interval = setInterval(() => {
                                     setPos(player.x - 1, player.y, 'e');
                                     setPos(player.x + 1, player.y, 'e');
@@ -236,6 +242,7 @@ wss.on('connection', (ws) => {
                                 let interval;
                                 let i = 4;
                                 player.cooldown2 = 110;
+                                player.maxCooldown2 = 110;
                                 interval = setInterval(() => {
                                     setPos(player.x - 6 + Math.floor(Math.random() * 12), player.y - 6 + Math.floor(Math.random() * 12), 'a');
                                     i++;
@@ -258,6 +265,7 @@ wss.on('connection', (ws) => {
                                 let interval;
                                 let i = 0;
                                 player.cooldown3 = 120;
+                                player.maxCooldown3 = 120;
                                 speedModifier = 0;
                                 interval = setInterval(() => {
                                     if (i > 40 && i < 45) {
@@ -278,6 +286,7 @@ wss.on('connection', (ws) => {
 
                             case "air": {
                                 player.cooldown3 = 2;
+                                player.maxCooldown3 = 2;
                                 setPos(player.x - 6 + Math.floor(Math.random() * 12), player.y - 6 + Math.floor(Math.random() * 12), 'a');
                             } break;
 
@@ -292,6 +301,7 @@ wss.on('connection', (ws) => {
                         if (player.cooldown4 > 0) return;
                         setPos(player.x, player.y, "d");
                         player.cooldown4 = 100;
+                        player.maxCooldown4 = 100;
                     };
                     break;
 
